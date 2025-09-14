@@ -90,6 +90,8 @@ Stored inside MongoDB Compass under:
 
 interviewDB > reports
 📸 Screenshots
+![image alt](https://github.com/NeelakshiSolanki/video-proctoring-system-/blob/947c2ec8002ca2e383a05dbc6abdba10dc77b314/Screenshot%202025-09-14%20135255.png)
+
 📷 Candidate Session (Live Monitoring)
 
 📷 Event Log & Structured Report
