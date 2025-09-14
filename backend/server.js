@@ -17,16 +17,19 @@ const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 // Connect to MongoDB Atlas
-// Use environment variable for deployment security
-const MONGODB_URI = process.env.MONGODB_URI || 
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
   "mongodb+srv://neeLAKshi:neeLAKshi@cluster0.fiwuyb6.mongodb.net/interviewDB?retryWrites=true&w=majority";
 
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("MongoDB connected"))
-.catch((err) => console.error("MongoDB connection error:", err));
+mongoose
+  .connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err.message);
+  });
 
 // Report Schema
 const reportSchema = new mongoose.Schema({
@@ -55,7 +58,11 @@ const upload = multer({ storage });
 app.post("/api/upload", upload.single("video"), async (req, res) => {
   try {
     const { report } = req.body;
-    if (!report) return res.status(400).json({ status: "error", message: "Report missing" });
+    if (!report) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Report missing" });
+    }
 
     const r = JSON.parse(report);
 
@@ -84,7 +91,7 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
     res.json({ status: "success", message: "Report saved" });
   } catch (err) {
     console.error("Upload error:", err);
-    res.status(500).json({ status: "error", message: "Internal server error" });
+    res.status(500).json({ status: "error", message: err.message });
   }
 });
 
@@ -92,24 +99,26 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
 app.get("/api/reports", async (req, res) => {
   try {
     const reports = await Report.find().sort({ timestamp: -1 });
-    res.json(reports);
+    res.json(Array.isArray(reports) ? reports : []); // always send array
   } catch (err) {
     console.error("Fetch reports error:", err);
-    res.status(500).json({ status: "error", message: "Internal server error" });
+    res.json([]); // instead of sending object, send empty array
   }
 });
 
 // Serve uploaded videos
 app.use("/uploads", express.static(uploadDir));
 
-// Serve React frontend
+// Serve React frontend (production build)
 const frontendPath = path.join(__dirname, "frontend-react/build");
-app.use(express.static(frontendPath));
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath));
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
+}
 
 // Start server
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

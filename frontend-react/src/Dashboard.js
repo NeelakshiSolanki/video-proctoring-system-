@@ -11,12 +11,18 @@ export default function Dashboard() {
 
     const fetchReports = async () => {
       try {
-        const res = await fetch("/api/reports"); // relative path
+        const res = await fetch("http://localhost:4000/api/reports"); // backend full URL
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         const data = await res.json();
-        if (!Array.isArray(data)) throw new Error("Invalid data format");
-        setReports(data);
-        setError("");
+
+        if (Array.isArray(data)) {
+          setReports(data);
+          setError("");
+        } else {
+          console.warn("Unexpected data format from API:", data);
+          setReports([]);
+          setError("Invalid data format from server");
+        }
       } catch (err) {
         console.error("Fetch error:", err);
         if (retries > 0) {
@@ -53,7 +59,9 @@ export default function Dashboard() {
             color: "#fff",
           }}
         >
-          <h3 style={{ color: "#ff7b00" }}>{r.candidate || "Unknown Candidate"}</h3>
+          <h3 style={{ color: "#ff7b00" }}>
+            {r.candidate || "Unknown Candidate"}
+          </h3>
           <p>Interview Duration: {r.duration || 0} sec</p>
           <p>Focus Lost: {r.focusLostCount || 0} times</p>
           <p>No Face Detected: {r.noFaceCount || 0} times</p>
@@ -63,15 +71,16 @@ export default function Dashboard() {
 
           <strong>Events:</strong>
           <ul>
-            {Array.isArray(r.events) && r.events.length > 0
-              ? r.events.map((e, i) => <li key={i}>{e}</li>)
-              : <li>No events recorded</li>
-            }
+            {Array.isArray(r.events) && r.events.length > 0 ? (
+              r.events.map((e, i) => <li key={i}>{e}</li>)
+            ) : (
+              <li>No events recorded</li>
+            )}
           </ul>
 
           {r.videoPath && (
             <video
-              src={`/${r.videoPath}`} // relative path for Vercel deployment
+              src={`http://localhost:4000${r.videoPath}`} // ✅ backend full URL
               controls
               width={400}
               style={{ borderRadius: "10px", marginTop: "10px" }}

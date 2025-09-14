@@ -6,6 +6,8 @@ export default function Proctor() {
   const [logLines, setLogLines] = useState([]);
   const [candidate, setCandidate] = useState("");
   const [running, setRunning] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [integrityScore, setIntegrityScore] = useState(0);
 
   const mediaStreamRef = useRef(null);
   const recorderRef = useRef(null);
@@ -14,18 +16,18 @@ export default function Proctor() {
   const faceMeshRef = useRef(null);
   const detectionLoopRef = useRef(null);
   const eventsRef = useRef([]);
-
-  const LOOK_AWAY_THRESHOLD = 5000;
-  const NO_FACE_THRESHOLD = 10000;
-  const lastFaceTimeRef = useRef(Date.now());
-  const lastLookAwayTimeRef = useRef(null);
   const sessionStartRef = useRef(null);
 
-  // Counters for structured report
+  const lastFaceTimeRef = useRef(Date.now());
+  const lastLookAwayTimeRef = useRef(null);
   const focusLostCountRef = useRef(0);
   const noFaceCountRef = useRef(0);
   const multipleFacesCountRef = useRef(0);
   const suspiciousObjectCountRef = useRef(0);
+
+  const LOOK_AWAY_THRESHOLD = 5000;
+  const NO_FACE_THRESHOLD = 10000;
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
 
   const logEvent = (type, detail) => {
     const ts = new Date().toISOString();
@@ -33,12 +35,10 @@ export default function Proctor() {
     setLogLines((lines) => [msg, ...lines].slice(0, 500));
     eventsRef.current = [msg, ...eventsRef.current].slice(0, 500);
 
-    // Update counters
     if (detail.includes("user_looking_away")) focusLostCountRef.current++;
     if (detail.includes("no_face_present")) noFaceCountRef.current++;
     if (detail.includes("multiple_faces_detected")) multipleFacesCountRef.current++;
-    if (detail.includes("cell phone") || detail.includes("book") || detail.includes("paper"))
-      suspiciousObjectCountRef.current++;
+    if (["cell phone", "book", "paper"].some((w) => detail.includes(w))) suspiciousObjectCountRef.current++;
   };
 
   const startCamera = async () => {
@@ -51,43 +51,45 @@ export default function Proctor() {
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
       return true;
-    } catch (err) {
+    } catch {
       alert("Camera access denied or not available");
       return false;
     }
   };
 
   const loadModels = async () => {
-    if (!cocoModelRef.current && window.cocoSsd) {
-      cocoModelRef.current = await window.cocoSsd.load();
-      logEvent("model", "coco-ssd loaded");
-    }
-
+    if (!cocoModelRef.current && window.cocoSsd) cocoModelRef.current = await window.cocoSsd.load();
     if (!faceMeshRef.current && window.FaceMesh) {
       const fm = new window.FaceMesh({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
       });
-      fm.setOptions({
-        maxNumFaces: 2,
-        refineLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      });
+      fm.setOptions({ maxNumFaces: 2, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
       fm.onResults(onFaceResults);
       faceMeshRef.current = fm;
-      logEvent("model", "FaceMesh loaded");
     }
   };
 
-  const startRecording = () => {
+  const startRecording = (structuredReport) => {
     recordedChunksRef.current = [];
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
-      ? "video/webm;codecs=vp9"
-      : "video/webm";
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm";
     const mr = new MediaRecorder(mediaStreamRef.current, { mimeType });
 
-    mr.ondataavailable = (e) => {
-      if (e.data.size) recordedChunksRef.current.push(e.data);
+    mr.ondataavailable = (e) => { if (e.data.size) recordedChunksRef.current.push(e.data); };
+
+    // Upload after recording stops
+    mr.onstop = async () => {
+      const videoBlob = new Blob(recordedChunksRef.current, { type: "video/webm" });
+      const form = new FormData();
+      form.append("video", videoBlob, `${candidate}_${Date.now()}.webm`);
+      form.append("report", JSON.stringify(structuredReport));
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/upload`, { method: "POST", body: form });
+        if (res.ok) logEvent("upload", "video uploaded successfully");
+        else logEvent("upload", "backend error");
+      } catch {
+        logEvent("upload", "failed - backend unreachable");
+      }
     };
 
     mr.start(1000);
@@ -100,16 +102,11 @@ export default function Proctor() {
     const now = Date.now();
 
     if (!faces.length) {
-      if (now - lastFaceTimeRef.current > NO_FACE_THRESHOLD) {
-        logEvent("suspicious", "no_face_present_>10s");
-      }
+      if (now - lastFaceTimeRef.current > NO_FACE_THRESHOLD) logEvent("suspicious", "no_face_present_>10s");
     } else {
       lastFaceTimeRef.current = now;
-
       const lm = faces[0];
-      const leftEye = lm[33],
-        rightEye = lm[263],
-        nose = lm[1];
+      const leftEye = lm[33], rightEye = lm[263], nose = lm[1];
       const midEyeX = (leftEye.x + rightEye.x) / 2;
 
       if (Math.abs(midEyeX - nose.x) > 0.06) {
@@ -126,9 +123,7 @@ export default function Proctor() {
 
   const handleObjects = async () => {
     if (!cocoModelRef.current || !videoRef.current) return;
-
     const predictions = await cocoModelRef.current.detect(videoRef.current);
-
     const ctx = canvasRef.current.getContext("2d");
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     ctx.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -153,76 +148,63 @@ export default function Proctor() {
       detectionLoopRef.current = requestAnimationFrame(detectionLoop);
       return;
     }
-
     await handleObjects();
     if (faceMeshRef.current) await faceMeshRef.current.send({ image: videoRef.current });
-
     detectionLoopRef.current = requestAnimationFrame(detectionLoop);
   };
 
   const startSession = async () => {
-    if (!candidate) {
-      alert("Enter candidate name");
-      return;
-    }
-    const ok = await startCamera();
-    if (!ok) return;
+    if (!candidate) { alert("Enter candidate name"); return; }
+    const ok = await startCamera(); if (!ok) return;
     await loadModels();
     sessionStartRef.current = Date.now();
-    startRecording();
+
+    // Reset counters
+    focusLostCountRef.current = 0;
+    noFaceCountRef.current = 0;
+    multipleFacesCountRef.current = 0;
+    suspiciousObjectCountRef.current = 0;
+    eventsRef.current = [];
+
+    const structuredReport = {
+      candidate,
+      duration: 0,
+      focusLostCount: 0,
+      noFaceCount: 0,
+      multipleFacesCount: 0,
+      suspiciousObjectCount: 0,
+      integrityScore: 0,
+      events: []
+    };
+
+    startRecording(structuredReport);
     detectionLoopRef.current = requestAnimationFrame(detectionLoop);
     setRunning(true);
     logEvent("session", `started for ${candidate}`);
   };
 
-  const stopSession = async () => {
+  const stopSession = () => {
     setRunning(false);
     cancelAnimationFrame(detectionLoopRef.current);
-
     if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
     if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach((t) => t.stop());
 
     const sessionEnd = Date.now();
     const durationSec = Math.floor((sessionEnd - sessionStartRef.current) / 1000);
+    setDuration(durationSec);
 
-    const deductions =
-      focusLostCountRef.current * 2 +
-      noFaceCountRef.current * 3 +
-      multipleFacesCountRef.current * 5 +
-      suspiciousObjectCountRef.current * 5;
-
-    const integrityScore = Math.max(0, 100 - deductions);
-
-    const structuredReport = {
-      candidate,
-      duration: durationSec,
-      focusLostCount: focusLostCountRef.current,
-      noFaceCount: noFaceCountRef.current,
-      multipleFacesCount: multipleFacesCountRef.current,
-      suspiciousObjectCount: suspiciousObjectCountRef.current,
-      integrityScore,
-      events: eventsRef.current
-    };
-
-    // Upload video + report
-    const videoBlob = new Blob(recordedChunksRef.current, { type: "video/webm" });
-    const form = new FormData();
-    form.append("video", videoBlob, `${candidate}_${Date.now()}.webm`);
-    form.append("report", JSON.stringify(structuredReport));
-
-    try {
-      const res = await fetch("http://localhost:4000/api/upload", {
-        method: "POST",
-        body: form
-      });
-      if (res.ok) logEvent("upload", "video uploaded successfully");
-      else logEvent("upload", "backend error");
-    } catch (err) {
-      logEvent("upload", "failed - backend unreachable");
-    }
-
-    logEvent("session", "stopped");
+    const deductions = focusLostCountRef.current*2 + noFaceCountRef.current*3 + multipleFacesCountRef.current*5 + suspiciousObjectCountRef.current*5;
+    const score = Math.max(0, 100 - deductions);
+    setIntegrityScore(score);
   };
+
+  useEffect(() => {
+    let interval;
+    if (running) {
+      interval = setInterval(() => setDuration(Math.floor((Date.now() - sessionStartRef.current)/1000)), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [running]);
 
   useEffect(() => {
     return () => {
@@ -236,50 +218,29 @@ export default function Proctor() {
       <div className="input-buttons">
         <label>
           Candidate Name:
-          <input
-            className="candidate-input"
-            value={candidate}
-            onChange={(e) => setCandidate(e.target.value)}
-            placeholder="Enter Name"
-          />
+          <input value={candidate} onChange={(e)=>setCandidate(e.target.value)} placeholder="Enter Name" />
         </label>
-        <button className="session-button" onClick={startSession} disabled={running}>
-          Start
-        </button>
-        <button className="session-button" onClick={stopSession} disabled={!running}>
-          Stop & Upload
-        </button>
+        <button onClick={startSession} disabled={running}>Start</button>
+        <button onClick={stopSession} disabled={!running}>Stop & Upload</button>
       </div>
 
       <div className="camera-container">
-        <video ref={videoRef} width={640} height={480} playsInline muted className="camera-video" />
-        <canvas ref={canvasRef} width={640} height={480} className="camera-canvas" />
+        <video ref={videoRef} width={640} height={480} playsInline muted autoPlay />
+        <canvas ref={canvasRef} width={640} height={480} />
       </div>
 
-      {/* --- Structured Report --- */}
       <div className="report-summary">
-        <p>Interview Duration: {Math.floor((Date.now() - sessionStartRef.current)/1000)} sec</p>
+        <p>Interview Duration: {duration} sec</p>
         <p>Focus Lost: {focusLostCountRef.current} times</p>
         <p>No Face Detected: {noFaceCountRef.current} times</p>
         <p>Multiple Faces Detected: {multipleFacesCountRef.current} times</p>
         <p>Suspicious Objects Detected: {suspiciousObjectCountRef.current} times</p>
-        <p>
-          Integrity Score:{" "}
-          {Math.max(
-            0,
-            100 -
-              (focusLostCountRef.current * 2 +
-                noFaceCountRef.current * 3 +
-                multipleFacesCountRef.current * 5 +
-                suspiciousObjectCountRef.current * 5)
-          )}
-        </p>
+        <p>Integrity Score: {integrityScore}</p>
       </div>
 
-      {/* --- Event Log --- */}
       <div className="event-log">
         <strong>Event Log</strong>
-        <div id="log">{logLines.map((l, i) => <div key={i}>{l}</div>)}</div>
+        {logLines.map((l,i)=><div key={i}>{l}</div>)}
       </div>
     </div>
   );
