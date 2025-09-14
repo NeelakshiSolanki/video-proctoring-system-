@@ -211,7 +211,7 @@ export default function Proctor() {
     form.append("report", JSON.stringify(structuredReport));
 
     try {
-      const res = await fetch("/api/upload", {
+      const res = await fetch("http://localhost:4000/api/upload", {
         method: "POST",
         body: form
       });

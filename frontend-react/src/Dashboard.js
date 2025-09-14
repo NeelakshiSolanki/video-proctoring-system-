@@ -4,7 +4,7 @@ export default function Dashboard() {
   const [reports, setReports] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/reports")
+    fetch("https://video-proctoring-backend-2nmr.onrender.com/api/reports")
       .then((res) => res.json())
       .then((data) => setReports(data))
       .catch((err) => console.error(err));
@@ -44,7 +44,7 @@ export default function Dashboard() {
 
           {r.videoPath && (
             <video
-              src={`http://localhost:4000/${r.videoPath}`}
+              src={`https://video-proctoring-backend-2nmr.onrender.com/${r.videoPath}`}
               controls
               width={400}
               style={{ borderRadius: "10px", marginTop: "10px" }}
