@@ -1,38 +1,104 @@
-1 <!doctype html>
-2 <html lang="en">
-3 <head>
-4   <meta charset="utf-8" />
-5   <meta name="viewport" content="width=device-width, initial-scale=1" />
-6   <title>Interview Proctor</title>
-7   <!-- CDN scripts for TensorFlow.js and a pretrained object-detection + face-mesh / mediapipe -->
-8   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.8.0/dist/tf.min.js"></script>
-9   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-10  <!-- we'll use @mediapipe/face_mesh via CDN for face landmarks (gaze/eyes) -->
-11  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-12  <style>
-13    /* simple inline styles so no external CSS file needed */
-14    body { font-family: Arial, sans-serif; margin: 12px; background:#fafafa; }
-15    #video { width: 640px; height: 480px; background: #000; }
-16    #overlay { position: absolute; left: 12px; top: 120px; }
-17    .panel { margin-top: 12px; }
-18    #log { white-space: pre-wrap; background:#fff; padding:8px; height:150px; overflow:auto; border:1px solid #ddd; }
-19  </style>
-20</head>
-21<body>
-22  <h1>Interview Proctor — Live</h1>
-23  <div>
-24    <video id="video" autoplay muted playsinline></video>
-25    <canvas id="canvas" width="640" height="480" style="position: absolute; margin-left:12px; margin-top:0;"></canvas>
-26  </div>
-27  <div class="panel">
-28    Candidate: <input id="candidateName" placeholder="Name" />
-29    <button id="startBtn">Start Session</button>
-30    <button id="stopBtn" disabled>Stop & Generate Report</button>
-31  </div>
-32  <div class="panel">
-33    <strong>Event Log</strong>
-34    <div id="log"></div>
-35  </div>
-36  <script src="proctor.js"></script>
-37</body>
-38</html>
+🎥 AI Video Proctoring System
+An AI-powered online interview proctoring system that monitors candidates during interviews. The system detects focus, suspicious behavior, and generates detailed reports for interviewers.
+
+🚀 Features
+ - Real-time face & object detection (MediaPipe FaceMesh + COCO-SSD)
+ - Eye closure & look-away detection (focus monitoring)
+ - Suspicious object detection (cell phone, book, paper)
+ - Multiple face detection
+ - No-face & drowsiness detection with thresholds
+ - Session video recording and secure upload
+ - Structured report generation with Integrity Score
+ - MongoDB Compass integration for report storage
+ - Interviewer dashboard to review sessions, videos & reports
+
+🛠 Tech Stack
+Frontend: React.js
+Backend: Node.js + Express.js
+Database: MongoDB (via MongoDB Compass)
+
+AI Models:
+MediaPipe FaceMesh
+TensorFlow COCO-SSD
+File Uploads: Multer
+Video Processing: MediaRecorder API
+
+📂 Project Structure
+
+video-proctoring-system/
+│── frontend-react/        # React frontend
+│   ├── src/       # React components
+│   └── public/    # Static assets
+│
+│── backend/        # Express + MongoDB backend
+│   ├── server.js  # Main backend logic
+│   └── models/    # Mongoose models
+    │── uploads/    # candidate recordings (auto-created)
+│    
+│── README.md
+
+
+⚙️ Setup Instructions
+1️⃣ Clone the Repository
+
+git clone https://github.com/Neelakshi-Solanki/video-proctoring-system.git
+cd video-proctoring-system
+2️⃣ Setup Backend (Node + Express)
+
+cd backend
+npm install
+node server.js
+
+➡ Runs backend at http://localhost:4000
+
+MongoDB must be running locally. If you’re using MongoDB Compass:
+
+Open Compass
+
+Connect to:
+
+
+mongodb://localhost:27017/interviewDB
+You will see a collection reports storing all proctoring session data.
+
+3️⃣ Setup Frontend (React)
+
+cd frontend-react
+npm install
+npm start
+➡ Runs frontend at http://localhost:3000
+
+🌍 Deployment
+Frontend → Deploy on Vercel
+
+Backend → Deploy on Render
+
+Database → Use MongoDB Atlas or connect your local MongoDB Compass instance
+
+📊 Sample Report
+yaml
+Copy code
+Candidate: John Doe
+Interview Duration: 320 sec
+Focus Lost: 3 times
+No Face Detected: 1 times
+Multiple Faces Detected: 0 times
+Suspicious Objects Detected: 2 times
+Integrity Score: 79
+Stored inside MongoDB Compass under:
+
+
+interviewDB > reports
+📸 Screenshots
+📷 Candidate Session (Live Monitoring)
+
+📷 Event Log & Structured Report
+
+📷 MongoDB Compass storing Reports
+
+🎥 Demo Video
+📌 Upload a 2–3 min demo to YouTube/Google Drive and add the link here.
+
+👩‍💻 Author
+Neelakshi Solanki
+🔗 GitHub
