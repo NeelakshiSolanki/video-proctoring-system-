@@ -98,3 +98,11 @@ app.use("/uploads", express.static(uploadDir));
 // Start server
 const PORT = 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const path = require("path");
+
+// Serve React build
+app.use(express.static(path.join(__dirname, "frontend-react/build")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend-react/build", "index.html"));
+});
