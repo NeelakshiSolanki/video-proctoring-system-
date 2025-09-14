@@ -6,7 +6,6 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -99,10 +98,7 @@ app.use("/uploads", express.static(uploadDir));
 // Start server
 const PORT = 4000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-
-// Serve React build
-app.use(express.static(path.join(__dirname, "frontend-react/build")));
+   app.use(express.static(path.join(__dirname, "frontend-react/build")));
 
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "frontend-react/build", "index.html"));
