@@ -1,0 +1,7 @@
+body { font-family: Arial, Helvetica, sans-serif; margin: 12px; background: #fafafa; }
+#root { max-width: 980px; margin: 0 auto; }
+header { display:flex; align-items:center; justify-content:space-between; }
+video { background:#000; border-radius:6px; }
+canvas { position: absolute; left: 0; top: 0; }
+.controls { margin-top: 12px; }
+#log { white-space: pre-wrap; background: #fff; padding:8px; height:160px; overflow:auto; border:1px solid #ddd; margin-top:8px; }
