@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const multer = require("multer");
@@ -6,28 +7,28 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-app.use(express.json());
 
-// CORS - allow deployed frontend
-app.use(cors({
-  origin: "https://video-proctoring-frontend-e2ap1eowj.vercel.app",
-  methods: ["GET", "POST"],
-  credentials: true
-}));
+// Enable CORS for frontend
+app.use(cors());
+app.use(express.json());
 
 // Ensure uploads folder exists
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
+// Connect to MongoDB Atlas
+// Use environment variable for deployment security
+const MONGODB_URI = process.env.MONGODB_URI || 
+  "mongodb+srv://neeLAKshi:neeLAKshi@cluster0.fiwuyb6.mongodb.net/interviewDB?retryWrites=true&w=majority";
+
+mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
 .then(() => console.log("MongoDB connected"))
-.catch(err => console.error("MongoDB connection error:", err));
+.catch((err) => console.error("MongoDB connection error:", err));
 
-// Schema & Model
+// Report Schema
 const reportSchema = new mongoose.Schema({
   candidate: String,
   timestamp: { type: Date, default: Date.now },
@@ -40,9 +41,10 @@ const reportSchema = new mongoose.Schema({
   suspiciousObjectCount: Number,
   integrityScore: Number,
 });
+
 const Report = mongoose.model("Report", reportSchema);
 
-// Multer Storage
+// Multer Storage for uploaded videos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, Date.now() + "_" + file.originalname),
@@ -56,10 +58,14 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
     if (!report) return res.status(400).json({ status: "error", message: "Report missing" });
 
     const r = JSON.parse(report);
-    const deductions = (r.focusLostCount || 0) * 5 +
-                       (r.noFaceCount || 0) * 10 +
-                       (r.multipleFacesCount || 0) * 15 +
-                       (r.suspiciousObjectCount || 0) * 10;
+
+    // Compute integrity score
+    const deductions =
+      (r.focusLostCount || 0) * 5 +
+      (r.noFaceCount || 0) * 10 +
+      (r.multipleFacesCount || 0) * 15 +
+      (r.suspiciousObjectCount || 0) * 10;
+
     const integrityScore = Math.max(0, 100 - deductions);
 
     const newReport = new Report({
@@ -82,7 +88,7 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
   }
 });
 
-// Fetch Reports
+// Fetch Reports Endpoint
 app.get("/api/reports", async (req, res) => {
   try {
     const reports = await Report.find().sort({ timestamp: -1 });
@@ -97,9 +103,11 @@ app.get("/api/reports", async (req, res) => {
 app.use("/uploads", express.static(uploadDir));
 
 // Serve React frontend
-app.use(express.static(path.join(__dirname, "frontend-react/build")));
+const frontendPath = path.join(__dirname, "frontend-react/build");
+app.use(express.static(frontendPath));
+
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "frontend-react/build", "index.html"));
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 // Start server

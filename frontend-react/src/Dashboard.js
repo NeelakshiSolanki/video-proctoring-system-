@@ -6,29 +6,22 @@ export default function Dashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let retries = 3;       // number of retry attempts
-    const delay = 2000;    // delay between retries (ms)
+    let retries = 3;
+    const delay = 2000;
 
     const fetchReports = async () => {
       try {
-        const res = await fetch(
-          "https://video-proctoring-backend-2nmr.onrender.com/api/reports"
-        );
-
+        const res = await fetch("/api/reports"); // relative path
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
-
         const data = await res.json();
-
         if (!Array.isArray(data)) throw new Error("Invalid data format");
-
         setReports(data);
         setError("");
       } catch (err) {
         console.error("Fetch error:", err);
-
         if (retries > 0) {
           retries -= 1;
-          setTimeout(fetchReports, delay); // retry after delay
+          setTimeout(fetchReports, delay);
         } else {
           setError(err.message || "Failed to fetch reports");
         }
@@ -70,16 +63,15 @@ export default function Dashboard() {
 
           <strong>Events:</strong>
           <ul>
-            {Array.isArray(r.events) && r.events.length > 0 ? (
-              r.events.map((e, i) => <li key={i}>{e}</li>)
-            ) : (
-              <li>No events recorded</li>
-            )}
+            {Array.isArray(r.events) && r.events.length > 0
+              ? r.events.map((e, i) => <li key={i}>{e}</li>)
+              : <li>No events recorded</li>
+            }
           </ul>
 
           {r.videoPath && (
             <video
-              src={`https://video-proctoring-backend-2nmr.onrender.com/${r.videoPath}`}
+              src={`/${r.videoPath}`} // relative path for Vercel deployment
               controls
               width={400}
               style={{ borderRadius: "10px", marginTop: "10px" }}
