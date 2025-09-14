@@ -86,12 +86,12 @@ Multiple Faces Detected: 0 times
 Suspicious Objects Detected: 2 times
 Integrity Score: 79
 Stored inside MongoDB Compass under:
-
-
 interviewDB > reports
-📸 Screenshots
-![image alt](https://github.com/NeelakshiSolanki/video-proctoring-system-/blob/947c2ec8002ca2e383a05dbc6abdba10dc77b314/Screenshot%202025-09-14%20135255.png)
 
+
+📸 Screenshots
+ 1.  ![image alt](https://github.com/NeelakshiSolanki/video-proctoring-system-/blob/947c2ec8002ca2e383a05dbc6abdba10dc77b314/Screenshot%202025-09-14%20135255.png)
+ 2. ![image alt](https://github.com/NeelakshiSolanki/video-proctoring-system-/blob/fcbc5e69170e2b39308b0b7224d4acdd0ce4f3c5/Screenshot%202025-09-14%20135612.png)
 📷 Candidate Session (Live Monitoring)
 
 📷 Event Log & Structured Report
