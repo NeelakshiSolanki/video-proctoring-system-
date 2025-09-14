@@ -41,7 +41,7 @@ video-proctoring-system/
 ⚙️ Setup Instructions
 1️⃣ Clone the Repository
 
-git clone https://github.com/Neelakshi-Solanki/video-proctoring-system.git
+git clonehttps://github.com/NeelakshiSolanki/video-proctoring-system-.git
 cd video-proctoring-system
 2️⃣ Setup Backend (Node + Express)
 
