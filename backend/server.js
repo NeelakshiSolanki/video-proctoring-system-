@@ -1,4 +1,3 @@
-// server.js
 const express = require("express");
 const mongoose = require("mongoose");
 const multer = require("multer");
@@ -7,15 +6,21 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+
+// CORS - allow deployed frontend
+app.use(cors({
+  origin: "https://video-proctoring-frontend-e2ap1eowj.vercel.app",
+  methods: ["GET", "POST"],
+  credentials: true
+}));
 
 // Ensure uploads folder exists
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 // MongoDB connection
-mongoose.connect("mongodb://localhost:27017/interviewDB", {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
@@ -28,14 +33,13 @@ const reportSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   events: [String],
   videoPath: String,
-  duration: Number, // in seconds
+  duration: Number,
   focusLostCount: Number,
   noFaceCount: Number,
   multipleFacesCount: Number,
   suspiciousObjectCount: Number,
   integrityScore: Number,
 });
-
 const Report = mongoose.model("Report", reportSchema);
 
 // Multer Storage
@@ -52,19 +56,16 @@ app.post("/api/upload", upload.single("video"), async (req, res) => {
     if (!report) return res.status(400).json({ status: "error", message: "Report missing" });
 
     const r = JSON.parse(report);
-
-    // Compute final integrity score
     const deductions = (r.focusLostCount || 0) * 5 +
                        (r.noFaceCount || 0) * 10 +
                        (r.multipleFacesCount || 0) * 15 +
                        (r.suspiciousObjectCount || 0) * 10;
-
     const integrityScore = Math.max(0, 100 - deductions);
 
     const newReport = new Report({
       candidate: r.candidate,
       events: r.events || [],
-      videoPath: req.file ? "uploads/" + req.file.filename : null, // updated
+      videoPath: req.file ? "uploads/" + req.file.filename : null,
       duration: r.duration || 0,
       focusLostCount: r.focusLostCount || 0,
       noFaceCount: r.noFaceCount || 0,
@@ -92,14 +93,15 @@ app.get("/api/reports", async (req, res) => {
   }
 });
 
-// Serve video files
+// Serve uploaded videos
 app.use("/uploads", express.static(uploadDir));
 
-// Start server
-const PORT = 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-   app.use(express.static(path.join(__dirname, "frontend-react/build")));
-
+// Serve React frontend
+app.use(express.static(path.join(__dirname, "frontend-react/build")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "frontend-react/build", "index.html"));
 });
+
+// Start server
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

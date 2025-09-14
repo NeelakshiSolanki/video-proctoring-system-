@@ -2,13 +2,46 @@ import React, { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("https://video-proctoring-backend-2nmr.onrender.com/api/reports")
-      .then((res) => res.json())
-      .then((data) => setReports(data))
-      .catch((err) => console.error(err));
+    let retries = 3;       // number of retry attempts
+    const delay = 2000;    // delay between retries (ms)
+
+    const fetchReports = async () => {
+      try {
+        const res = await fetch(
+          "https://video-proctoring-backend-2nmr.onrender.com/api/reports"
+        );
+
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+        const data = await res.json();
+
+        if (!Array.isArray(data)) throw new Error("Invalid data format");
+
+        setReports(data);
+        setError("");
+      } catch (err) {
+        console.error("Fetch error:", err);
+
+        if (retries > 0) {
+          retries -= 1;
+          setTimeout(fetchReports, delay); // retry after delay
+        } else {
+          setError(err.message || "Failed to fetch reports");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
   }, []);
+
+  if (loading) return <p style={{ padding: "20px" }}>Loading reports...</p>;
+  if (error) return <p style={{ padding: "20px", color: "red" }}>{error}</p>;
 
   return (
     <div style={{ padding: "20px", fontFamily: "Poppins, sans-serif" }}>
@@ -27,19 +60,21 @@ export default function Dashboard() {
             color: "#fff",
           }}
         >
-          <h3 style={{ color: "#ff7b00" }}>{r.candidate}</h3>
-          <p>Interview Duration: {r.duration} sec</p>
-          <p>Focus Lost: {r.focusLostCount} times</p>
-          <p>No Face Detected: {r.noFaceCount} times</p>
-          <p>Multiple Faces Detected: {r.multipleFacesCount} times</p>
-          <p>Suspicious Objects Detected: {r.suspiciousObjectCount} times</p>
-          <p>Integrity Score: {r.integrityScore}</p>
+          <h3 style={{ color: "#ff7b00" }}>{r.candidate || "Unknown Candidate"}</h3>
+          <p>Interview Duration: {r.duration || 0} sec</p>
+          <p>Focus Lost: {r.focusLostCount || 0} times</p>
+          <p>No Face Detected: {r.noFaceCount || 0} times</p>
+          <p>Multiple Faces Detected: {r.multipleFacesCount || 0} times</p>
+          <p>Suspicious Objects Detected: {r.suspiciousObjectCount || 0} times</p>
+          <p>Integrity Score: {r.integrityScore || 0}</p>
 
           <strong>Events:</strong>
           <ul>
-            {r.events.map((e, i) => (
-              <li key={i}>{e}</li>
-            ))}
+            {Array.isArray(r.events) && r.events.length > 0 ? (
+              r.events.map((e, i) => <li key={i}>{e}</li>)
+            ) : (
+              <li>No events recorded</li>
+            )}
           </ul>
 
           {r.videoPath && (
