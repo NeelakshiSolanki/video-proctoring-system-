@@ -15,7 +15,7 @@ An AI-powered online interview proctoring system that monitors candidates during
 🛠 Tech Stack
 Frontend: React.js
 Backend: Node.js + Express.js
-Database: MongoDB (via MongoDB Compass)
+Database: MongoDB 
 
 AI Models:
 MediaPipe FaceMesh
@@ -51,14 +51,16 @@ node server.js
 
 ➡ Runs backend at http://localhost:4000
 
-MongoDB must be running locally. If you’re using MongoDB Compass:
+MongoDB Atlas must be connected.
 
-Open Compass
+In .env file, add your Atlas URI:
 
-Connect to:
+env
+Copy code
+MONGODB_URI=mongodb+srv://neeLAKshi:neeLAKshi@cluster0.xxxxx.mongodb.net/interviewDB?retryWrites=true&w=majority
+Replace <username> and <password> with your Atlas credentials.
 
-
-mongodb://localhost:27017/interviewDB
+All proctoring reports will be stored in the reports collection under interviewDB database.
 You will see a collection reports storing all proctoring session data.
 
 3️⃣ Setup Frontend (React)
