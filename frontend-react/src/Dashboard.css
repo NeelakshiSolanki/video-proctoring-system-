@@ -1,0 +1,120 @@
+/* Container */
+.dashboard-container {
+  max-width: 1000px;
+  margin: 30px auto;
+  padding: 20px;
+  font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f7fa;
+  color: #333;
+}
+
+/* Heading */
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #1a237e;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+/* Report Card */
+.report-card {
+  background: #ffffff;
+  padding: 20px 25px;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  margin-bottom: 25px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.report-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Candidate Name */
+.report-card h2 {
+  margin-top: 0;
+  color: #0d47a1;
+  font-size: 1.5rem;
+}
+
+/* Paragraphs */
+.report-card p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+/* Integrity Score */
+.report-card strong {
+  color: #e53935;
+  font-weight: 600;
+}
+
+/* Video Styling */
+.report-video {
+  display: block;
+  margin: 15px auto;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.08);
+  transition: transform 0.2s;
+}
+
+.report-video:hover {
+  transform: scale(1.02);
+}
+
+/* Event Log */
+.event-log {
+  background: #e3f2fd;
+  padding: 15px;
+  border-radius: 12px;
+  max-height: 220px;
+  overflow-y: auto;
+  font-size: 13px;
+  color: #0d47a1;
+  margin-top: 12px;
+  line-height: 1.5;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+}
+
+/* Event Log Scrollbar (Webkit) */
+.event-log::-webkit-scrollbar {
+  width: 6px;
+}
+.event-log::-webkit-scrollbar-thumb {
+  background: #0d47a1;
+  border-radius: 3px;
+}
+.event-log::-webkit-scrollbar-track {
+  background: #c5cae9;
+  border-radius: 3px;
+}
+
+/* Details / Summary */
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 10px;
+  color: #1976d2;
+  transition: color 0.2s;
+}
+
+details summary:hover {
+  color: #0d47a1;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .report-card {
+    padding: 15px 20px;
+  }
+  .report-video {
+    max-width: 100%;
+  }
+}

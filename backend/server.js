@@ -1,124 +1,53 @@
-// server.js
 const express = require("express");
-const mongoose = require("mongoose");
 const multer = require("multer");
 const cors = require("cors");
-const fs = require("fs");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
-
-// Enable CORS for frontend
 app.use(cors());
 app.use(express.json());
+app.use("/videos", express.static(path.join(__dirname, "videos")));
 
-// Ensure uploads folder exists
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+const upload = multer({ dest: "videos/" });
 
-// Connect to MongoDB Atlas
-const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  "mongodb+srv://neeLAKshi:neeLAKshi@cluster0.fiwuyb6.mongodb.net/interviewDB?retryWrites=true&w=majority";
-
-mongoose
-  .connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err.message);
-  });
-
-// Report Schema
-const reportSchema = new mongoose.Schema({
-  candidate: String,
-  timestamp: { type: Date, default: Date.now },
-  events: [String],
-  videoPath: String,
-  duration: Number,
-  focusLostCount: Number,
-  noFaceCount: Number,
-  multipleFacesCount: Number,
-  suspiciousObjectCount: Number,
-  integrityScore: Number,
-});
-
-const Report = mongoose.model("Report", reportSchema);
-
-// Multer Storage for uploaded videos
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + "_" + file.originalname),
-});
-const upload = multer({ storage });
-
-// Upload Endpoint
-app.post("/api/upload", upload.single("video"), async (req, res) => {
+// Upload endpoint for video + report
+app.post("/api/upload", upload.single("video"), (req, res) => {
   try {
-    const { report } = req.body;
-    if (!report) {
-      return res
-        .status(400)
-        .json({ status: "error", message: "Report missing" });
+    const report = JSON.parse(req.body.report);
+    const video = req.file;
+
+    // Rename video to keep original name
+    const newPath = path.join(__dirname, "videos", video.originalname);
+    fs.renameSync(video.path, newPath);
+
+    // Save report as JSON
+    const reportsPath = path.join(__dirname, "reports.json");
+    let allReports = [];
+    if (fs.existsSync(reportsPath)) {
+      allReports = JSON.parse(fs.readFileSync(reportsPath));
     }
+    report.videoPath = `videos/${video.originalname}`;
+    allReports.push(report);
+    fs.writeFileSync(reportsPath, JSON.stringify(allReports, null, 2));
 
-    const r = JSON.parse(report);
-
-    // Compute integrity score
-    const deductions =
-      (r.focusLostCount || 0) * 5 +
-      (r.noFaceCount || 0) * 10 +
-      (r.multipleFacesCount || 0) * 15 +
-      (r.suspiciousObjectCount || 0) * 10;
-
-    const integrityScore = Math.max(0, 100 - deductions);
-
-    const newReport = new Report({
-      candidate: r.candidate,
-      events: r.events || [],
-      videoPath: req.file ? "uploads/" + req.file.filename : null,
-      duration: r.duration || 0,
-      focusLostCount: r.focusLostCount || 0,
-      noFaceCount: r.noFaceCount || 0,
-      multipleFacesCount: r.multipleFacesCount || 0,
-      suspiciousObjectCount: r.suspiciousObjectCount || 0,
-      integrityScore,
-    });
-
-    await newReport.save();
-    res.json({ status: "success", message: "Report saved" });
+    res.status(200).json({ message: "Upload successful" });
   } catch (err) {
-    console.error("Upload error:", err);
-    res.status(500).json({ status: "error", message: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Upload failed" });
   }
 });
 
-// Fetch Reports Endpoint
-app.get("/api/reports", async (req, res) => {
-  try {
-    const reports = await Report.find().sort({ timestamp: -1 });
-    res.json(Array.isArray(reports) ? reports : []); // always send array
-  } catch (err) {
-    console.error("Fetch reports error:", err);
-    res.json([]); // instead of sending object, send empty array
+// Get all reports
+app.get("/api/reports", (req, res) => {
+  const reportsPath = path.join(__dirname, "reports.json");
+  if (fs.existsSync(reportsPath)) {
+    const allReports = JSON.parse(fs.readFileSync(reportsPath));
+    res.json(allReports);
+  } else {
+    res.json([]);
   }
 });
 
-// Serve uploaded videos
-app.use("/uploads", express.static(uploadDir));
-
-// Serve React frontend (production build)
-const frontendPath = path.join(__dirname, "frontend-react/build");
-if (fs.existsSync(frontendPath)) {
-  app.use(express.static(frontendPath));
-
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendPath, "index.html"));
-  });
-}
-
-// Start server
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+const PORT = 4000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
