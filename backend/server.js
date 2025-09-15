@@ -1,3 +1,4 @@
+// server.js
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
@@ -5,49 +6,71 @@ const path = require("path");
 const fs = require("fs");
 
 const app = express();
+const PORT = process.env.PORT || 5000; // Backend server port
+
+// Enable CORS
 app.use(cors());
+
+// For JSON body parsing (report data)
 app.use(express.json());
-app.use("/videos", express.static(path.join(__dirname, "videos")));
 
-const upload = multer({ dest: "videos/" });
+// Serve uploaded videos statically
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Upload endpoint for video + report
+// Temporary in-memory reports storage (replace later with DB)
+let reports = [];
+
+// Multer setup for video uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({ storage });
+
+// Test API
+app.get("/api/upload", (req, res) => {
+  res.send("Upload API is working! Use POST to send video & report.");
+});
+
+// Upload endpoint
 app.post("/api/upload", upload.single("video"), (req, res) => {
   try {
-    const report = JSON.parse(req.body.report);
-    const video = req.file;
+    const videoFile = req.file;
+    const reportData = req.body.report ? JSON.parse(req.body.report) : {};
 
-    // Rename video to keep original name
-    const newPath = path.join(__dirname, "videos", video.originalname);
-    fs.renameSync(video.path, newPath);
-
-    // Save report as JSON
-    const reportsPath = path.join(__dirname, "reports.json");
-    let allReports = [];
-    if (fs.existsSync(reportsPath)) {
-      allReports = JSON.parse(fs.readFileSync(reportsPath));
+    if (!videoFile) {
+      return res.status(400).json({ success: false, message: "No video uploaded" });
     }
-    report.videoPath = `videos/${video.originalname}`;
-    allReports.push(report);
-    fs.writeFileSync(reportsPath, JSON.stringify(allReports, null, 2));
 
-    res.status(200).json({ message: "Upload successful" });
+    // Add videoPath to report
+    reportData.videoPath = videoFile.filename;
+    reports.push(reportData);
+
+    console.log("Video saved at:", videoFile.path);
+    console.log("Report:", reportData);
+
+    return res.json({
+      success: true,
+      message: "Video & report uploaded successfully",
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Upload failed" });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// Get all reports
+// Fetch reports API
 app.get("/api/reports", (req, res) => {
-  const reportsPath = path.join(__dirname, "reports.json");
-  if (fs.existsSync(reportsPath)) {
-    const allReports = JSON.parse(fs.readFileSync(reportsPath));
-    res.json(allReports);
-  } else {
-    res.json([]);
-  }
+  res.json(reports.reverse()); // latest first
 });
 
-const PORT = 4000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
