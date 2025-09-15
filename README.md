@@ -15,7 +15,7 @@ An AI-powered online interview proctoring system that monitors candidates during
 🛠 Tech Stack
 Frontend: React.js
 Backend: Node.js + Express.js
-Database: MongoDB 
+
 
 AI Models:
 MediaPipe FaceMesh
@@ -51,14 +51,9 @@ node server.js
 
 ➡ Runs backend at http://localhost:4000
 
-MongoDB Atlas must be connected.
 
-In .env file, add your Atlas URI:
-
-env
-Copy code
 MONGODB_URI=mongodb+srv://neeLAKshi:neeLAKshi@cluster0.xxxxx.mongodb.net/interviewDB?retryWrites=true&w=majority
-Replace <username> and <password> with your Atlas credentials.
+
 
 All proctoring reports will be stored in the reports collection under interviewDB database.
 You will see a collection reports storing all proctoring session data.
@@ -72,14 +67,11 @@ npm start
 
 🌍 Deployment
 Frontend → Deploy on Vercel
-
 Backend → Deploy on Render
 
-Database → Use MongoDB Atlas or connect your local MongoDB Compass instance
+
 
 📊 Sample Report
-yaml
-Copy code
 Candidate: John Doe
 Interview Duration: 320 sec
 Focus Lost: 3 times
@@ -98,10 +90,8 @@ interviewDB > reports
 
 📷 Event Log & Structured Report
 
-📷 MongoDB Compass storing Reports
 
-🎥 Demo Video
-📌 Upload a 2–3 min demo to YouTube/Google Drive and add the link here.
+
 
 👩‍💻 Author
 Neelakshi Solanki
