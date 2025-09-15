@@ -84,7 +84,7 @@ interviewDB > reports
 
 
 📸 Screenshots
- 1.  ![image alt](https://github.com/NeelakshiSolanki/video-proctoring-system-/blob/947c2ec8002ca2e383a05dbc6abdba10dc77b314/Screenshot%202025-09-14%20135255.png)
+ 1.  ![image alt](https://github.com/NeelakshiSolanki/video-proctoring-system-/blob/d715e2d9f1b6639c62f2478a6367619379bcb167/Screenshot%202025-09-15%20191118.png)
  2. ![image alt](https://github.com/NeelakshiSolanki/video-proctoring-system-/blob/fcbc5e69170e2b39308b0b7224d4acdd0ce4f3c5/Screenshot%202025-09-14%20135612.png)
 📷 Candidate Session (Live Monitoring)
 
